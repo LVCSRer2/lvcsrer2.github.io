@@ -45,7 +45,7 @@ function audioProcess(event) {
 document.getElementById('startRecording').addEventListener('click', async () => {
     await initializeAudio();
 
-    webSocket = new WebSocket('wss://13.124.62.252:8000/ws/audio');
+    webSocket = new WebSocket('ws://13.124.62.252:8000/ws/audio');
     
     webSocket.onopen = () => {
         document.getElementById('startRecording').disabled = true;
