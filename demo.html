@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice chatbot</title>
+    <style>
+        body {
+            color: white; /* 글자색을 흰색으로 설정 */
+            background-color: black; /* 배경을 검정으로 설정 */
+        }
+        #status {
+            margin-bottom: 10px;
+        }
+        /* #stopRecording {
+            margin-bottom: 10px;
+        } */
+    </style>    
+</head>
+<body>
+    <h1>Voice chatbot</h1>    
+    <div id="status">Status: Press start recording and allow microphone access</div>
+    <button id="startRecording">Start Recording</button>
+    <button id="stopRecording" disabled>Stop Recording</button>    
+    <div id="conversation"></div>
+    <script src="script.js"> </script>
+</body>
+</html>
