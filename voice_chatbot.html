@@ -9,7 +9,7 @@
             border: 1px solid #ccc;
             padding: 10px;
             max-width: 600px;
-            height: 400px;
+            height: 600px;
             overflow-y: scroll;
             margin-top: 20px;
         }
@@ -22,13 +22,24 @@
         .chatbot {
             color: green;
         }
+        #startBtn {
+            width: 150px; /* 버튼의 너비 */
+            height: 50px; /* 버튼의 높이 */
+            font-size: 18px; /* 글씨 크기 */
+        }
+        #stopBtn {
+            width: 150px; /* 버튼의 너비 */
+            height: 50px; /* 버튼의 높이 */
+            font-size: 18px; /* 글씨 크기 */
+        }
     </style>
 </head>
 <body>
     <h1>Voice Recorder</h1>
     <div id="conversation"></div>
     <button id="startBtn">Start Recording</button>
-    <button id="stopBtn" disabled>Stop Recording</button>    
+    <button id="stopBtn" disabled>Stop Recording</button>
+    
 
     <script>
         let mediaRecorder;
