@@ -18,16 +18,12 @@
         }
         .user {
             color: blue;
+            text-align: right;
         }
         .chatbot {
             color: green;
         }
-        #startBtn {
-            width: 150px; /* 버튼의 너비 */
-            height: 50px; /* 버튼의 높이 */
-            font-size: 16px; /* 글씨 크기 */
-        }
-        #stopBtn {
+        #toggleBtn {
             width: 150px; /* 버튼의 너비 */
             height: 50px; /* 버튼의 높이 */
             font-size: 16px; /* 글씨 크기 */
@@ -37,76 +33,73 @@
 <body>
     <h1>Voice Chatbot</h1>
     <div id="conversation"></div>
-    <button id="startBtn">Start Recording</button>
-    <button id="stopBtn" disabled>Stop Recording</button>
+    <button id="toggleBtn">Start Recording</button>
     
-
     <script>
         let mediaRecorder;
         let audioChunks = [];
         let stream;
         let isMicInitialized = false;
         let websocket;
+        let isRecording = false;
 
-        document.getElementById('startBtn').addEventListener('click', async () => {
-            if (!isMicInitialized) {
-                try {
-                    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    isMicInitialized = true;
-                } catch (error) {
-                    console.error('마이크 권한을 요청하는 중 에러 발생:', error);
-                    return;
+        document.getElementById('toggleBtn').addEventListener('click', async () => {
+            const toggleBtn = document.getElementById('toggleBtn');
+            if (!isRecording) {
+                // Start recording
+                if (!isMicInitialized) {
+                    try {
+                        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        isMicInitialized = true;
+                    } catch (error) {
+                        console.error('마이크 권한을 요청하는 중 에러 발생:', error);
+                        return;
+                    }
                 }
-            }
 
-            // 웹소켓 연결을 시작 버튼을 누른 후에 설정
-            if (!websocket || websocket.readyState === WebSocket.CLOSED) {
-                // websocket = new WebSocket('ws://localhost:8000/ws/chatbot');
-                websocket = new WebSocket('wss://robin-alert-lioness.ngrok-free.app/ws/chatbot');
-                websocket.onmessage = function (event) {
-                    // 챗봇 응답을 conversation 영역에 추가
-                    appendMessage('Chatbot', event.data);
+                // 웹소켓 연결 설정
+                if (!websocket || websocket.readyState === WebSocket.CLOSED) {
+                    websocket = new WebSocket('wss://robin-alert-lioness.ngrok-free.app/ws/chatbot');
+                    websocket.onmessage = function (event) {
+                        appendMessage('Chatbot', event.data);
+                    };
+                }
+
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
                 };
+
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    const formData = new FormData();
+                    formData.append('file', audioBlob, 'audio.wav');
+
+                    const response = await fetch('https://robin-alert-lioness.ngrok-free.app/audio', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const result = await response.json();
+                    appendMessage('User', result.transcription);
+
+                    if (websocket.readyState === WebSocket.OPEN) {
+                        websocket.send(result.transcription);
+                    } else {
+                        console.error('WebSocket 연결이 열려 있지 않습니다.');
+                    }
+                };
+
+                mediaRecorder.start();
+                toggleBtn.textContent = 'Stop Recording';
+                isRecording = true;
+            } else {
+                // Stop recording
+                mediaRecorder.stop();
+                toggleBtn.textContent = 'Start Recording';
+                audioChunks = []; // Reset audio chunks for next recording
+                isRecording = false;
             }
-
-            mediaRecorder = new MediaRecorder(stream);
-            mediaRecorder.ondataavailable = event => {
-                audioChunks.push(event.data);
-            };
-
-            mediaRecorder.onstop = async () => {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                const formData = new FormData();
-                formData.append('file', audioBlob, 'audio.wav');
-
-                // 음성 파일을 서버에 전송하고 transcription을 즉시 받음
-                const response = await fetch('https://robin-alert-lioness.ngrok-free.app/audio', {
-                // const response = await fetch('http://localhost:8000/audio', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const result = await response.json();
-                appendMessage('User', result.transcription);
-
-                // WebSocket을 통해 transcription을 챗봇 서버에 전송
-                if (websocket.readyState === WebSocket.OPEN) {
-                    websocket.send(result.transcription);
-                } else {
-                    console.error('WebSocket 연결이 열려 있지 않습니다.');
-                }
-            };
-
-            mediaRecorder.start();
-            document.getElementById('stopBtn').disabled = false;
-            document.getElementById('startBtn').disabled = true;
-        });
-
-        document.getElementById('stopBtn').addEventListener('click', () => {
-            mediaRecorder.stop();
-            document.getElementById('stopBtn').disabled = true;
-            document.getElementById('startBtn').disabled = false;
-            audioChunks = []; // Reset audio chunks for next recording
         });
 
         function appendMessage(sender, message) {
@@ -116,9 +109,8 @@
             messageDiv.classList.add(sender.toLowerCase());
             messageDiv.textContent = `${sender}: ${message}`;
             conversationDiv.appendChild(messageDiv);
-            conversationDiv.scrollTop = conversationDiv.scrollHeight; // 대화 영역을 아래로 스크롤
+            conversationDiv.scrollTop = conversationDiv.scrollHeight;
         }
-
     </script>
 </body>
 </html>
