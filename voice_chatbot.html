@@ -18,7 +18,7 @@
         }
         .user {
             color: blue;
-/*             text-align: right; */
+            /* text-align: right; */
         }
         .chatbot {
             color: green;
@@ -92,11 +92,13 @@
 
                 mediaRecorder.start();
                 toggleBtn.textContent = 'Stop Recording';
+                toggleBtn.style.color = 'red'; // 글자색을 빨간색으로 변경
                 isRecording = true;
             } else {
                 // Stop recording
                 mediaRecorder.stop();
                 toggleBtn.textContent = 'Start Recording';
+                toggleBtn.style.color = 'black'; // 글자색을 검은색으로 변경
                 audioChunks = []; // Reset audio chunks for next recording
                 isRecording = false;
             }
