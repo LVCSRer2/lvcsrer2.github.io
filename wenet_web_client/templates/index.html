@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>WeNet 데모</title>
+  <link rel="shortcut icon" href="./static/favicon.ico">
+  <script src="../static/js/jquery-3.2.1.min.js"></script>
+  <script src="../static/js/recorder/recorder-core.js"></script>
+  <script src="../static/js/recorder/extensions/lib.fft.js"></script>
+  <script src="../static/js/recorder/extensions/frequency.histogram.view.js"></script>
+  <script src="../static/js/recorder/engine/pcm.js"></script>
+  <script src="../static/js/SoundRecognizer.js"></script>
+  <link rel="stylesheet" href="../static/css/style.css">
+  <link rel="stylesheet" href="../static/css/font-awesome.min.css">
+</head>
+
+<body>
+  <div class="asr-content">
+    <div class="audio-banner">
+      <div class="weaper">
+        <div class="text-content">
+          <p><span class="title">WeNet 소개</span></p>
+          <p class="con-container">
+            <span class="con">WeNet은 산업용 등급 제품을 위한 세계 최초의 풀 ​​스택, 오픈 소스, 엔드투엔드 음성 인식 솔루션으로, 모델 훈련, 모델 추론, 클라우드 측 및 장치 측 모델 배포를 위한 원스톱 서비스를 제공합니다.</span>
+          </p>
+        </div>
+        <div class="img-con">
+          <img src="../static/image/voice-pic.png" alt="" />
+        </div>
+      </div>
+    </div>
+    <div class="audio-experience">
+      <div class="asr-box">
+        <h2>WeNet 데모</h2>
+        <div id="client-word-recorder" style="position: relative;">
+          <div class="pd">
+            <div style="text-align:center;height:20px;width:100%;
+                        border:0px solid #bcbcbc;color:#000;box-sizing: border-box;display:inline-block"
+              class="recwave">
+            </div>
+          </div>
+        </div>
+        <div class="voice-container">
+          <div class="voice-input">
+            <span>WebSocket URL：</span>
+            <input type="text" id="socketUrl" class="websocket-url" value="ws://54.180.178.182:10086"
+              placeholder="请输入服务器地址，如：ws://54.180.178.182:10086">
+            <div class="start-voice">
+              <button type="primary" id="beginBtn" class="voice-btn">
+                <span class="fa fa-microphone"> 인식시작</span>
+              </button>
+              <button type="primary" id="endBtn" class="voice-btn end">
+                <span class="fa fa-microphone-slash"> 인식중지</span>
+              </button>
+              <div id="timeBox" class="time-box flex-display-1">
+                <span class="total-time">인식중，<i id="timeCount"></i> 초 후에 자동으로 인식이 중지됩니다 .</span>
+              </div>
+            </div>
+          </div>
+          <div class="voice">
+            <div class="result-text" id="resultPanel">인식결과는 여기에 표시됩니다. </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="audio-advantage">
+      <div class="asr-advantage">
+        <h2>핵심기능</h2>
+        <ul class="service-item-content">
+          <li class="icons-advantage-mb35">
+            <i class="icons icons-advantage icons-advantage-1"> </i>
+            <div class="service-item-content-title">제품 우선 및 제품에 적합한 디자인</div>
+            <div class="service-item-content-desc">WeNet에서 학습한 모델은 제품 환경에 직접적이고 원활하게 적용될 수 있으며 긴 음성, 엔드포인트 감지, 타임스탬프 및 언어 모델과 같은 제품 수준 기능에 대한 지원을 제공합니다.</div>
+          </li>
+          <li class="icons-advantage-mb35">
+            <i class="icons icons-advantage icons-advantage-2"> </i>
+            <div class="service-item-content-title">통합 스트리밍 및 비스트리밍 모델</div>
+            <div class="service-item-content-desc">WeNet에서 학습한 모델은 지연 시간이 짧은 스트리밍 음성 인식 시나리오와 인식률 요구 사항이 높은 비스트리밍 음성 인식 시나리오 모두에 적용될 수 있습니다.。</div>
+          </li>
+          <li>
+            <i class="icons icons-advantage icons-advantage-3"> </i>
+            <div class="service-item-content-title">클라우드 측 및 장치 측 솔루션</div>
+            <div class="service-item-content-desc">WeNet은 클라우드 측 솔루션과 장치 측 솔루션을 모두 통합합니다.</div>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div class="audio-scene-con">
+      <div class="audio-scene">
+        <h2>문의하기</h2>
+        <ul class="service-item-content">
+          <li>
+            <div class="service-item-content-desc">공개 계정을 팔로우하려면 WeChat에서 QR 코드를 스캔하세요.</div>
+            <img src="../static/image/qrcode-official-account.png" alt="" />
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <script>
+    var wenetWs = null
+    var timeLoop = null
+    var result = ""
+    $(document).ready(function () {
+      $('#beginBtn').on('click', startRecording)
+      $('#endBtn').on('click', stopRecording)
+    })
+
+    function openWebSocket(url) {
+      if ("WebSocket" in window) {
+        wenetWs = new WebSocket(url)
+        wenetWs.onopen = function () {
+          console.log("Websocket 连接成功，开始识别")
+          wenetWs.send(JSON.stringify({
+            "signal": "start",
+            "nbest": 1,
+            "continuous_decoding": true
+          }))
+        }
+        wenetWs.onmessage = function (_msg) { parseResult(_msg.data) }
+        wenetWs.onclose = function () {
+          console.log("WebSocket 连接断开")
+          if (result.length > 0) {
+            if (result.endsWith("，")) {
+              result = result.slice(0, -1)
+            }
+            $("#resultPanel").html(result + "。")
+            result = ""
+          }
+        }
+        wenetWs.onerror = function () { console.log("WebSocket 连接失败") }
+      }
+    }
+
+    function parseResult(data) {
+      var data = JSON.parse(data)
+      if (data.type == 'partial_result') {
+        nbest = JSON.parse(data.nbest)
+        var sentence = nbest[0].sentence
+        if (sentence.length > 0) {
+          $("#resultPanel").html(result + sentence)
+        }
+      } else if (data.type == 'final_result') {
+        nbest = JSON.parse(data.nbest)
+        var sentence = nbest[0].sentence
+        if (sentence.length > 0) {
+          result += sentence + "，"
+          $("#resultPanel").html(result)
+        }
+        console.log(nbest)
+      }
+    }
+
+    function TransferUpload(number, blobOrNull, duration, blobRec, isClose) {
+      if (blobOrNull) {
+        var blob = blobOrNull
+        var encTime = blob.encTime
+        var reader = new FileReader()
+        reader.onloadend = function () { wenetWs.send(reader.result) }
+        reader.readAsArrayBuffer(blob)
+      }
+    }
+
+    function startRecording() {
+      // Check socket url
+      var socketUrl = $('#socketUrl').val()
+      if (!socketUrl.trim()) {
+        alert('请输入 WebSocket 服务器地址，如：ws://127.0.0.1:10086')
+        $('#socketUrl').focus()
+        return
+      }
+      // init recorder
+      SoundRecognizer.init({
+        soundType: 'pcm',
+        sampleRate: 16000,
+        recwaveElm: '.recwave',
+        translerCallBack: TransferUpload
+      })
+      openWebSocket(socketUrl)
+
+      // Change button state
+      $('#beginBtn').hide()
+      $('#endBtn, #timeBox').addClass('show')
+      // Start countdown
+      var seconds = 180
+      $('#timeCount').text(seconds)
+      timeLoop = setInterval(function () {
+        seconds--
+        $('#timeCount').text(seconds)
+        if (seconds === 0) {
+          stopRecording()
+        }
+      }, 1000)
+    }
+
+    function stopRecording() {
+      wenetWs.send(JSON.stringify({ "signal": "end" }))
+      SoundRecognizer.recordClose()
+
+      $('#endBtn').add($('#timeBox')).removeClass('show')
+      $('#beginBtn').show()
+      $('#timeCount').text('')
+      clearInterval(timeLoop)
+    }
+  </script>
+</body>
+
+</html>
